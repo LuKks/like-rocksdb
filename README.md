@@ -4,6 +4,8 @@
 npm i like-rocksdb
 ```
 
+https://rocksdb.org
+
 ## Usage
 
 ```js
