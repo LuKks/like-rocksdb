@@ -1,0 +1,30 @@
+{
+  "name": "like-rocksdb",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "files": [],
+  "scripts": {
+    "test": "standard && brittle test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lukks/like-rocksdb.git"
+  },
+  "author": "Lucas Barrena (LuKks)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lukks/like-rocksdb/issues"
+  },
+  "homepage": "https://github.com/lukks/like-rocksdb#readme",
+  "devDependencies": {
+    "require-npm-global": "github:lukks/require-npm-global"
+  },
+  "dependencies": {
+    "@harperfast/rocksdb-js": "^2.2.0",
+    "compact-encoding": "^3.3.0"
+  },
+  "allowScripts": {
+    "msgpackr-extract@3.0.4": true
+  }
+}
