@@ -118,6 +118,9 @@ module.exports = class RocksKV {
     }
 
     if (opts.reverse) {
+      const start = range.start
+      range.start = range.end
+      range.end = start
       range.reverse = true
     }
 
@@ -145,7 +148,12 @@ module.exports = class RocksKV {
     return this.db.transaction(async txn => {
       const wrap = {
         async get (key) {
-          const buffer = await txn.get(key)
+          let buffer
+          try {
+            buffer = await txn.get(key)
+          } catch (error) {
+            if (error?.message !== 'Result incomplete: no blocking io') throw error
+          }
 
           if (buffer === undefined) {
             return undefined
@@ -154,7 +162,12 @@ module.exports = class RocksKV {
           return compact.decode(compact.any, buffer)
         },
         async has (key) {
-          const buffer = await txn.get(key)
+          let buffer
+          try {
+            buffer = await txn.get(key)
+          } catch (error) {
+            if (error?.message !== 'Result incomplete: no blocking io') throw error
+          }
 
           if (buffer === undefined) {
             return false
