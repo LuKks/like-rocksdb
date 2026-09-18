@@ -5,9 +5,13 @@ const compact = require('compact-encoding')
 
 module.exports = class RocksKV {
   constructor (dir, opts = {}) {
-    this.db = new RocksDatabase(dir, {
-      name: opts.name || 'default'
-    })
+    if (dir instanceof RocksDatabase) {
+      this.db = dir
+    } else {
+      this.db = new RocksDatabase(dir, {
+        name: opts.name || 'default'
+      })
+    }
 
     this.opened = false
     this.opening = this.ready()
@@ -38,6 +42,10 @@ module.exports = class RocksKV {
     return this.db.columns
   }
 
+  use (name, opts = {}) {
+    return new this.constructor(this.db.use(name, opts))
+  }
+
   async put (key, value, opts = {}) {
     if (value === undefined) {
       throw new Error('Can not store undefined')
@@ -49,8 +57,8 @@ module.exports = class RocksKV {
     })
   }
 
-  async get (key) {
-    const buffer = await this.db.get(key)
+  async get (key, opts = {}) {
+    const buffer = await this.db.get(key, opts)
 
     if (buffer === undefined) {
       return undefined
@@ -59,18 +67,14 @@ module.exports = class RocksKV {
     return compact.decode(compact.any, buffer)
   }
 
-  async has (key) {
-    const buffer = await this.db.get(key)
+  async has (key, opts = {}) {
+    const buffer = await this.db.get(key, opts)
 
-    if (buffer === undefined) {
-      return false
-    }
-
-    return true
+    return buffer !== undefined
   }
 
-  async remove (key) {
-    await this.db.remove(key)
+  async remove (key, opts = {}) {
+    await this.db.remove(key, opts)
   }
 
   async clear () {
@@ -91,6 +95,12 @@ module.exports = class RocksKV {
 
   // TODO: Edge case with scan({ limit: 1 }) and pagination due inclusiveEnd defaulting true?
   async scan (opts = {}) {
+    if (opts.name !== undefined) {
+      const { name, ...scanOptions } = opts
+
+      return this.use(name).scan(scanOptions)
+    }
+
     const limit = opts.limit || 100
     const range = { exclusiveStart: false, inclusiveEnd: true }
 
@@ -124,6 +134,10 @@ module.exports = class RocksKV {
       range.reverse = true
     }
 
+    if (opts.transaction) {
+      range.transaction = opts.transaction
+    }
+
     const entries = []
 
     for (const { key, value } of this.db.getRange(range)) {
@@ -146,66 +160,64 @@ module.exports = class RocksKV {
 
   async transaction (callback) {
     return this.db.transaction(async txn => {
-      const wrap = {
-        async get (key) {
-          let buffer
-          try {
-            buffer = await txn.get(key)
-          } catch (error) {
-            if (error?.message !== 'Result incomplete: no blocking io') throw error
-          }
-
-          if (buffer === undefined) {
-            return undefined
-          }
-
-          return compact.decode(compact.any, buffer)
-        },
-        async has (key) {
-          let buffer
-          try {
-            buffer = await txn.get(key)
-          } catch (error) {
-            if (error?.message !== 'Result incomplete: no blocking io') throw error
-          }
-
-          if (buffer === undefined) {
-            return false
-          }
-
-          return true
-        },
-        async put (key, value) {
-          if (value === undefined) {
-            throw new Error('Can not store undefined')
-          }
-
-          await txn.put(key, compact.encode(compact.any, value))
-        },
-        async remove (key) {
-          await txn.remove(key)
-        }
-      }
-
-      return callback(wrap)
+      return callback(transactionView(this, txn))
     })
   }
 
   async batch (operations) {
-    await this.db.transaction(async txn => {
+    await this.transaction(async txn => {
       for (const op of operations) {
-        if (op.type === 'put') {
-          if (op.value === undefined) {
-            throw new Error('Can not store undefined')
-          }
+        const db = op.name ? txn.use(op.name) : txn
 
-          await txn.put(op.key, compact.encode(compact.any, op.value))
+        if (op.type === 'put') {
+          await db.put(op.key, op.value)
         }
 
         if (op.type === 'remove') {
-          await txn.remove(op.key)
+          await db.remove(op.key)
         }
       }
     })
+  }
+}
+
+function transactionView (db, txn) {
+  return {
+    async get (key) {
+      let buffer
+
+      try {
+        buffer = await db.db.get(key, { transaction: txn })
+      } catch (error) {
+        if (error?.message !== 'Result incomplete: no blocking io') throw error
+      }
+
+      if (buffer === undefined) {
+        return undefined
+      }
+
+      return compact.decode(compact.any, buffer)
+    },
+
+    async has (key) {
+      const value = await this.get(key)
+      return value !== undefined
+    },
+
+    async put (key, value) {
+      await db.put(key, value, { transaction: txn })
+    },
+
+    async remove (key) {
+      await db.remove(key, { transaction: txn })
+    },
+
+    async scan (opts = {}) {
+      return db.scan({ ...opts, transaction: txn })
+    },
+
+    use (name, opts = {}) {
+      return transactionView(db.use(name, opts), txn)
+    }
   }
 }

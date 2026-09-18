@@ -21,7 +21,7 @@
     "require-npm-global": "github:lukks/require-npm-global"
   },
   "dependencies": {
-    "@harperfast/rocksdb-js": "^2.2.0",
+    "@harperfast/rocksdb-js": "^2.9.1",
     "compact-encoding": "^3.3.0"
   },
   "allowScripts": {
