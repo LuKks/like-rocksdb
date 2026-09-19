@@ -68,9 +68,9 @@ const db = new RocksDB('./data', {
 
 #### Parameters
 
-- `dir` `string` — Directory used for the database.
+- `dir` `string | RocksDatabase` — Directory used for the database, or an existing `RocksDatabase` instance to wrap.
 - `options` `object` — Optional database settings.
-- `options.name` `string` — Column family name. Defaults to `'default'`.
+- `options.name` `string` — Column family name. Defaults to `'default'`. Ignored when `dir` is a `RocksDatabase` instance.
 
 The database begins opening during construction. Use `await db.ready()` before performing database operations.
 
@@ -119,6 +119,25 @@ Returns the database columns exposed by the underlying RocksDB implementation.
 
 `Array` or the value provided by the underlying database implementation.
 
+### `db.use(name[, options])`
+
+Returns a new database instance bound to another column family of the same underlying database.
+
+```js
+const users = db.use('users')
+
+await users.put('user:1', { name: 'Alice' })
+```
+
+#### Parameters
+
+- `name` `string` — Column family name.
+- `options` `object` — Optional settings passed to the underlying database.
+
+#### Returns
+
+A new `RocksDB` instance.
+
 ### `db.put(key, value[, options])`
 
 Stores a value under a key.
@@ -145,7 +164,7 @@ await db.put('user:1', {
 
 An `Error` if `value` is `undefined`.
 
-### `db.get(key)`
+### `db.get(key[, options])`
 
 Retrieves and decodes a value.
 
@@ -156,6 +175,7 @@ const value = await db.get('user:1')
 #### Parameters
 
 - `key` — Database key.
+- `options` `object` — Optional settings passed to the underlying database, e.g. `{ transaction }`.
 
 #### Returns
 
@@ -163,7 +183,7 @@ const value = await db.get('user:1')
 
 Resolves to the decoded value, or `undefined` if the key does not exist.
 
-### `db.has(key)`
+### `db.has(key[, options])`
 
 Checks whether a key exists.
 
@@ -174,12 +194,13 @@ const found = await db.has('user:1')
 #### Parameters
 
 - `key` — Database key.
+- `options` `object` — Optional settings passed to the underlying database, e.g. `{ transaction }`.
 
 #### Returns
 
 `Promise<boolean>`
 
-### `db.remove(key)`
+### `db.remove(key[, options])`
 
 Removes a key and its associated value.
 
@@ -230,6 +251,7 @@ const entries = await db.scan({
 #### Parameters
 
 - `options` `object` — Optional scan settings.
+- `options.name` `string` — Scans the column family with the given name.
 - `options.limit` `number` — Maximum number of entries to return. Defaults to `100`.
 - `options.sub` `string` — Scans keys below the given slash-separated prefix.
 - `options.gt` — Starts after this key.
@@ -237,6 +259,7 @@ const entries = await db.scan({
 - `options.lt` — Stops before this key.
 - `options.lte` — Stops at or before this key.
 - `options.reverse` `boolean` — Scans the range in reverse order.
+- `options.transaction` — Scans within the given transaction.
 
 The returned entries have the following structure:
 
@@ -299,6 +322,8 @@ The callback receives an object with these methods:
 - `txn.has(key)`
 - `txn.put(key, value)`
 - `txn.remove(key)`
+- `txn.scan([options])`
+- `txn.use(name[, options])`
 
 Transaction-scoped `put()` calls reject `undefined` values.
 
@@ -334,6 +359,7 @@ await db.batch([
 - `operation.type` `string` — Either `'put'` or `'remove'`.
 - `operation.key` — Database key.
 - `operation.value` — Value for `'put'` operations. Must not be `undefined`.
+- `operation.name` `string` — Column family to run the operation against.
 
 ## License
 
