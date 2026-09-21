@@ -82,7 +82,7 @@ Closes the database.
 
 Returns the current database status.
 
-Possible values are `'opened'` and `'closed'`.
+Possible values are `'open'` and `'closed'`.
 
 ### `db.name`
 

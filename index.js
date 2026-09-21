@@ -31,7 +31,7 @@ module.exports = class RocksKV {
   }
 
   get status () {
-    return this.db.status // 'opened' | 'closed'
+    return this.db.status
   }
 
   get name () {
