@@ -54,7 +54,7 @@ await db.close()
 
 Creates a key-value database backed by RocksDB.
 
-- `dir` — Folder where the data is saved. Can also be an existing `RocksDatabase` instance to wrap.
+- `dir` — Folder where the data is saved.
 
 ```js
 const db = new RocksDB('./data')
@@ -64,7 +64,7 @@ Options:
 
 ```js
 {
-  name: String // Column family name. Defaults to 'default'. Ignored when dir is a RocksDatabase instance.
+  name: String // Column family name. Defaults to 'default'.
 }
 ```
 
