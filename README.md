@@ -11,47 +11,41 @@ https://rocksdb.org
 ## Usage
 
 ```js
-const RocksDB = require('like-rocksdb')
+import RocksDB from 'like-rocksdb'
 
-main()
+const db = new RocksDB('./data')
 
-async function main () {
-  const db = new RocksDB('./data', {
-    name: 'users'
-  })
+await db.ready()
 
-  await db.ready()
+await db.put('/users/1', {
+  name: 'Alice',
+  active: true
+})
 
-  await db.put('user:1', {
-    name: 'Alice',
-    active: true
-  })
+const user = await db.get('/users/1')
 
-  const user = await db.get('user:1')
+console.log(user)
+// { name: 'Alice', active: true }
 
-  console.log(user)
-  // { name: 'Alice', active: true }
+const exists = await db.has('/users/1')
 
-  const exists = await db.has('user:1')
+console.log(exists)
+// true
 
-  console.log(exists)
-  // true
+const entries = await db.scan({
+  sub: '/users',
+  limit: 100
+})
 
-  const entries = await db.scan({
-    sub: 'user',
-    limit: 100
-  })
+console.log(entries)
+// [
+//   {
+//     key: '/users/1',
+//     value: { name: 'Alice', active: true }
+//   }
+// ]
 
-  console.log(entries)
-  // [
-  //   {
-  //     key: 'user:1',
-  //     value: { name: 'Alice', active: true }
-  //   }
-  // ]
-
-  await db.close()
-}
+await db.close()
 ```
 
 ## API
@@ -61,9 +55,7 @@ async function main () {
 Creates a key-value database backed by RocksDB.
 
 ```js
-const db = new RocksDB('./data', {
-  name: 'users'
-})
+const db = new RocksDB('./data')
 ```
 
 #### Parameters
@@ -126,7 +118,7 @@ Returns a new database instance bound to another column family of the same under
 ```js
 const users = db.use('users')
 
-await users.put('user:1', { name: 'Alice' })
+await users.put('/users/1', { name: 'Alice' })
 ```
 
 #### Parameters
@@ -145,10 +137,8 @@ Stores a value under a key.
 Values are serialized using `compact-encoding`. `undefined` cannot be stored.
 
 ```js
-await db.put('user:1', {
+await db.put('/users/1', {
   name: 'Alice'
-}, {
-  sync: true
 })
 ```
 
@@ -169,7 +159,7 @@ An `Error` if `value` is `undefined`.
 Retrieves and decodes a value.
 
 ```js
-const value = await db.get('user:1')
+const value = await db.get('/users/1')
 ```
 
 #### Parameters
@@ -188,7 +178,7 @@ Resolves to the decoded value, or `undefined` if the key does not exist.
 Checks whether a key exists.
 
 ```js
-const found = await db.has('user:1')
+const found = await db.has('/users/1')
 ```
 
 #### Parameters
@@ -205,7 +195,7 @@ const found = await db.has('user:1')
 Removes a key and its associated value.
 
 ```js
-await db.remove('user:1')
+await db.remove('/users/1')
 ```
 
 ### `db.clear()`
@@ -242,8 +232,8 @@ Scans entries within an optional key range.
 
 ```js
 const entries = await db.scan({
-  gte: 'user:',
-  lt: 'user; ',
+  gte: '/users/',
+  lt: '/users0',
   limit: 50
 })
 ```
@@ -282,8 +272,8 @@ Compacts part or all of the database.
 
 ```js
 await db.compact({
-  start: 'user:1',
-  end: 'user:9'
+  start: '/users/1',
+  end: '/users/9'
 })
 ```
 
@@ -299,16 +289,28 @@ Runs operations inside a database transaction.
 
 ```js
 await db.transaction(async txn => {
-  const user = await txn.get('user:1')
+  const user = await txn.get('/users/1')
 
   if (user) {
-    await txn.put('user:1', {
+    await txn.put('/users/1', {
       ...user,
       active: false
     })
   }
 
-  await txn.remove('user:old')
+  await txn.remove('/users/old')
+})
+```
+
+Transactions can span multiple column families using `txn.use(name)`. All writes commit together or not at all.
+
+```js
+await db.transaction(async txn => {
+  const users = txn.use('users')
+  const posts = txn.use('posts')
+
+  await users.put('/users/1', { name: 'Alice' })
+  await posts.put('/posts/1', { author: '/users/1' })
 })
 ```
 
@@ -341,14 +343,14 @@ Executes multiple `put` and `remove` operations in a single transaction.
 await db.batch([
   {
     type: 'put',
-    key: 'user:1',
+    key: '/users/1',
     value: {
       name: 'Alice'
     }
   },
   {
     type: 'remove',
-    key: 'user:old'
+    key: '/users/old'
   }
 ])
 ```
