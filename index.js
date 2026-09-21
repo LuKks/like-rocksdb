@@ -1,6 +1,12 @@
 const { RocksDatabase } = require('@harperfast/rocksdb-js')
 const compact = require('compact-encoding')
 
+const kRaw = Symbol('raw.transaction')
+
+function raw (transaction) {
+  return transaction && transaction[kRaw] ? transaction[kRaw] : transaction
+}
+
 // TODO: enableStats/getStats, aftercommit, useLog/addEntry/transactionLogRetention
 
 module.exports = class RocksKV {
@@ -52,13 +58,13 @@ module.exports = class RocksKV {
     }
 
     await this.db.put(key, compact.encode(compact.any, value), {
-      transaction: opts.transaction,
+      transaction: raw(opts.transaction),
       sync: opts.sync
     })
   }
 
   async get (key, opts = {}) {
-    const buffer = await this.db.get(key, opts)
+    const buffer = await this.db.get(key, { ...opts, transaction: raw(opts.transaction) })
 
     if (buffer === undefined) {
       return undefined
@@ -68,13 +74,13 @@ module.exports = class RocksKV {
   }
 
   async has (key, opts = {}) {
-    const buffer = await this.db.get(key, opts)
+    const buffer = await this.db.get(key, { ...opts, transaction: raw(opts.transaction) })
 
     return buffer !== undefined
   }
 
   async remove (key, opts = {}) {
-    await this.db.remove(key, opts)
+    await this.db.remove(key, { ...opts, transaction: raw(opts.transaction) })
   }
 
   async clear () {
@@ -135,7 +141,7 @@ module.exports = class RocksKV {
     }
 
     if (opts.transaction) {
-      range.transaction = opts.transaction
+      range.transaction = raw(opts.transaction)
     }
 
     const entries = []
@@ -182,7 +188,7 @@ module.exports = class RocksKV {
 }
 
 function transactionView (db, txn) {
-  return {
+  const view = {
     async get (key) {
       let buffer
 
@@ -220,4 +226,8 @@ function transactionView (db, txn) {
       return transactionView(db.use(name, opts), txn)
     }
   }
+
+  view[kRaw] = txn
+
+  return view
 }
