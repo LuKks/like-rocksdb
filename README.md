@@ -186,8 +186,6 @@ The database is closed after the column family is dropped.
 
 Deletes the complete storage of the database, including the storage of all column families.
 
-Use this method with care.
-
 ### `entries = await db.scan([options])`
 
 Scans entries within an optional key range.
@@ -297,7 +295,7 @@ await db.transaction(async txn => {
 })
 ```
 
-Transactions can span multiple column families with `txn.use(name)`. All writes commit together as a single unit.
+Transactions can span multiple column families with `txn.use(name)`. All writes commit together or not at all.
 
 ```js
 await db.transaction(async txn => {
