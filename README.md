@@ -66,21 +66,13 @@ const db = new RocksDB('./data')
 
 The database begins opening during construction. Use `await db.ready()` before performing database operations.
 
-### `db.ready()`
+### `await db.ready()`
 
 Opens the database and returns a promise that resolves when the database is ready.
 
-```js
-await db.ready()
-```
-
-### `db.close()`
+### `await db.close()`
 
 Closes the database.
-
-```js
-await db.close()
-```
 
 ### `db.status`
 
@@ -130,17 +122,11 @@ await users.put('/users/1', { name: 'Alice' })
 
 A new `RocksDB` instance.
 
-### `db.put(key, value[, options])`
+### `await db.put(key, value[, options])`
 
 Stores a value under a key.
 
 Values are serialized using `compact-encoding`. `undefined` cannot be stored.
-
-```js
-await db.put('/users/1', {
-  name: 'Alice'
-})
-```
 
 #### Parameters
 
@@ -154,13 +140,9 @@ await db.put('/users/1', {
 
 An `Error` if `value` is `undefined`.
 
-### `db.get(key[, options])`
+### `value = await db.get(key[, options])`
 
 Retrieves and decodes a value.
-
-```js
-const value = await db.get('/users/1')
-```
 
 #### Parameters
 
@@ -173,13 +155,9 @@ const value = await db.get('/users/1')
 
 Resolves to the decoded value, or `undefined` if the key does not exist.
 
-### `db.has(key[, options])`
+### `found = await db.has(key[, options])`
 
 Checks whether a key exists.
-
-```js
-const found = await db.has('/users/1')
-```
 
 #### Parameters
 
@@ -190,43 +168,32 @@ const found = await db.has('/users/1')
 
 `Promise<boolean>`
 
-### `db.remove(key[, options])`
+### `await db.remove(key[, options])`
 
 Removes a key and its associated value.
 
-```js
-await db.remove('/users/1')
-```
+#### Parameters
 
-### `db.clear()`
+- `key` — Database key.
+- `options` `object` — Optional settings passed to the underlying database, e.g. `{ transaction }`.
+
+### `await db.clear()`
 
 Deletes all entries while preserving the current column family.
 
-```js
-await db.clear()
-```
-
-### `db.drop()`
+### `await db.drop()`
 
 Deletes all entries and removes the current column family.
 
-```js
-await db.drop()
-```
-
 The database is closed after the column family is dropped.
 
-### `db.purge()`
+### `await db.purge()`
 
 Destroys the entire database storage globally, including storage for all columns.
 
-```js
-await db.purge()
-```
-
 Use this method with care because it affects the complete database storage.
 
-### `db.scan([options])`
+### `entries = await db.scan([options])`
 
 Scans entries within an optional key range.
 
@@ -293,7 +260,7 @@ Values are decoded using `compact-encoding`.
 
 `Promise<Array<{ key, value }>>`
 
-### `db.compact([options])`
+### `await db.compact([options])`
 
 Compacts part or all of the database.
 
@@ -310,7 +277,7 @@ await db.compact({
 - `options.start` — Start key for compaction.
 - `options.end` — End key for compaction.
 
-### `db.transaction(callback)`
+### `await db.transaction(callback)`
 
 Runs operations inside a database transaction.
 
@@ -362,7 +329,7 @@ Transaction-scoped `put()` calls reject `undefined` values.
 
 Resolves with the value returned by `callback`.
 
-### `db.batch(operations)`
+### `await db.batch(operations)`
 
 Executes multiple `put` and `remove` operations in a single transaction.
 
