@@ -230,11 +230,21 @@ Use this method with care because it affects the complete database storage.
 
 Scans entries within an optional key range.
 
+`sub` builds the prefix range internally, no need to spell out the bounds yourself.
+
 ```js
 const entries = await db.scan({
-  gte: '/users/',
-  lt: '/users0',
+  sub: '/users', // Equivalent to { gte: '/users/', lt: '/users0' }
   limit: 50
+})
+```
+
+Use `gt`/`gte`/`lt`/`lte` only for custom ranges, e.g. resuming a scan after a given key.
+
+```js
+const entries = await db.scan({
+  sub: '/users',
+  gt: '/users/0a'
 })
 ```
 
