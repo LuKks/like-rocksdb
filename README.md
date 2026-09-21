@@ -238,6 +238,23 @@ const entries = await db.scan({
 })
 ```
 
+Keys are scanned in byte order, so plain integer ids sort as strings (`'/users/10'` and `'/users/100'` come before `'/users/2'`). Use [`lexicographic-integer`](https://github.com/hyperdivision/lexicographic-integer) to keep numeric order.
+
+```js
+import lexint from 'lexicographic-integer'
+
+await db.put('/users/' + lexint.pack(2, 'hex'), { name: 'Bob' })
+await db.put('/users/' + lexint.pack(10, 'hex'), { name: 'Alice' })
+await db.put('/users/' + lexint.pack(100, 'hex'), { name: 'Carol' })
+
+const entries = await db.scan({ sub: '/users' })
+// [
+//   { key: '/users/02', value: { name: 'Bob' } },
+//   { key: '/users/0a', value: { name: 'Alice' } },
+//   { key: '/users/64', value: { name: 'Carol' } }
+// ]
+```
+
 #### Parameters
 
 - `options` `object` — Optional scan settings.
