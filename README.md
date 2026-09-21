@@ -1,6 +1,6 @@
 # like-rocksdb
 
-A small RocksDB-backed key-value store with compact-encoding serialization, range scans, transactions, and batch operations.
+A small key-value store built on RocksDB, with compact-encoding serialization, range scans, transactions, and batch operations.
 
 ```sh
 npm i like-rocksdb
@@ -68,11 +68,11 @@ Options:
 }
 ```
 
-The database begins opening during construction. Use `await db.ready()` before performing database operations.
+The database starts opening during construction. Use `await db.ready()` to wait until it is ready for operations.
 
 ### `await db.ready()`
 
-Opens the database and returns a promise that resolves when the database is ready.
+Opens the database and resolves when it is ready for use.
 
 ### `await db.close()`
 
@@ -115,7 +115,7 @@ Stores a value under a key.
 
 Values are serialized using `compact-encoding`.
 
-Throws if `value` is `undefined`.
+Throws an error if `value` is `undefined`.
 
 Options:
 
@@ -174,7 +174,7 @@ Options:
 
 ### `await db.clear()`
 
-Deletes all entries while preserving the current column family.
+Deletes all entries and keeps the current column family.
 
 ### `await db.drop()`
 
@@ -184,15 +184,15 @@ The database is closed after the column family is dropped.
 
 ### `await db.purge()`
 
-Destroys the entire database storage globally, including storage for all columns.
+Deletes the complete storage of the database, including the storage of all column families.
 
-Use this method with care because it affects the complete database storage.
+Use this method with care.
 
 ### `entries = await db.scan([options])`
 
 Scans entries within an optional key range.
 
-`sub` builds the prefix range internally, no need to spell out the bounds yourself.
+`sub` scans all keys below a prefix and builds the range internally.
 
 ```js
 const entries = await db.scan({
@@ -201,7 +201,7 @@ const entries = await db.scan({
 })
 ```
 
-Use `gt`/`gte`/`lt`/`lte` only for custom ranges, e.g. resuming a scan after a given key.
+Use `gt`/`gte`/`lt`/`lte` for custom ranges only, for example to resume a scan after a given key.
 
 ```js
 const entries = await db.scan({
@@ -210,7 +210,7 @@ const entries = await db.scan({
 })
 ```
 
-Keys are scanned in byte order, so plain integer ids sort as strings (`'/users/10'` and `'/users/100'` come before `'/users/2'`). Use [`lexicographic-integer`](https://github.com/hyperdivision/lexicographic-integer) to keep numeric order.
+The scan reads keys in byte order. For this reason, plain integer ids sort as strings: `'/users/10'` and `'/users/100'` come before `'/users/2'`. Use [`lexicographic-integer`](https://github.com/hyperdivision/lexicographic-integer) to keep the numeric order.
 
 ```js
 import lexint from 'lexicographic-integer'
@@ -297,7 +297,7 @@ await db.transaction(async txn => {
 })
 ```
 
-Transactions can span multiple column families using `txn.use(name)`. All writes commit together or not at all.
+Transactions can span multiple column families with `txn.use(name)`. All writes commit together as a single unit.
 
 ```js
 await db.transaction(async txn => {
