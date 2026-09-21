@@ -1,6 +1,6 @@
 # like-rocksdb
 
-A small key-value store built on RocksDB, with compact-encoding serialization, range scans, transactions, and batch operations.
+A small key-value store built on RocksDB, with compact encoding, range scans, transactions, and batch operations.
 
 ```sh
 npm i like-rocksdb
