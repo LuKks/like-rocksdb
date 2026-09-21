@@ -54,15 +54,19 @@ await db.close()
 
 Creates a key-value database backed by RocksDB.
 
+- `dir` — Folder where the data is saved. Can also be an existing `RocksDatabase` instance to wrap.
+
 ```js
 const db = new RocksDB('./data')
 ```
 
-#### Parameters
+Options:
 
-- `dir` `string | RocksDatabase` — Directory used for the database, or an existing `RocksDatabase` instance to wrap.
-- `options` `object` — Optional database settings.
-- `options.name` `string` — Column family name. Defaults to `'default'`. Ignored when `dir` is a `RocksDatabase` instance.
+```js
+{
+  name: String // Column family name. Defaults to 'default'. Ignored when dir is a RocksDatabase instance.
+}
+```
 
 The database begins opening during construction. Use `await db.ready()` before performing database operations.
 
@@ -78,34 +82,23 @@ Closes the database.
 
 Returns the current database status.
 
-#### Returns
-
-`string`
-
-Possible values include:
-
-- `'opened'`
-- `'closed'`
+Possible values are `'opened'` and `'closed'`.
 
 ### `db.name`
 
 Returns the database column family name.
 
-#### Returns
-
-`string`
-
 ### `db.columns`
 
 Returns the database columns exposed by the underlying RocksDB implementation.
 
-#### Returns
-
-`Array` or the value provided by the underlying database implementation.
-
 ### `instance = db.use(name[, options])`
 
 Returns a new database instance bound to another column family of the same underlying database.
+
+- `name` — Column family name.
+
+Options are passed to the underlying database.
 
 ```js
 const users = db.use('users')
@@ -113,69 +106,71 @@ const users = db.use('users')
 await users.put('/users/1', { name: 'Alice' })
 ```
 
-#### Parameters
-
-- `name` `string` — Column family name.
-- `options` `object` — Optional settings passed to the underlying database.
-
-#### Returns
-
-A new `RocksDB` instance.
-
 ### `await db.put(key, value[, options])`
 
 Stores a value under a key.
 
-Values are serialized using `compact-encoding`. `undefined` cannot be stored.
-
-#### Parameters
-
 - `key` — Database key accepted by the underlying RocksDB implementation.
 - `value` — Value to store. Must not be `undefined`.
-- `options` `object` — Optional write settings.
-- `options.transaction` — Optional transaction associated with the write.
-- `options.sync` `boolean` — Whether the write should be synchronized before resolving.
 
-#### Throws
+Values are serialized using `compact-encoding`.
 
-An `Error` if `value` is `undefined`.
+Throws if `value` is `undefined`.
+
+Options:
+
+```js
+{
+  transaction, // Optional transaction associated with the write.
+  sync: Boolean // Whether the write should be synchronized before resolving.
+}
+```
 
 ### `value = await db.get(key[, options])`
 
 Retrieves and decodes a value.
 
-#### Parameters
-
 - `key` — Database key.
-- `options` `object` — Optional settings passed to the underlying database, e.g. `{ transaction }`.
-
-#### Returns
-
-`Promise<any>`
 
 Resolves to the decoded value, or `undefined` if the key does not exist.
+
+Options:
+
+```js
+{
+  transaction // Optional transaction to read within.
+}
+```
 
 ### `found = await db.has(key[, options])`
 
 Checks whether a key exists.
 
-#### Parameters
-
 - `key` — Database key.
-- `options` `object` — Optional settings passed to the underlying database, e.g. `{ transaction }`.
 
-#### Returns
+Resolves to `true` or `false`.
 
-`Promise<boolean>`
+Options:
+
+```js
+{
+  transaction // Optional transaction to read within.
+}
+```
 
 ### `await db.remove(key[, options])`
 
 Removes a key and its associated value.
 
-#### Parameters
-
 - `key` — Database key.
-- `options` `object` — Optional settings passed to the underlying database, e.g. `{ transaction }`.
+
+Options:
+
+```js
+{
+  transaction // Optional transaction to remove within.
+}
+```
 
 ### `await db.clear()`
 
@@ -232,18 +227,21 @@ const entries = await db.scan({ sub: '/users' })
 // ]
 ```
 
-#### Parameters
+Options:
 
-- `options` `object` — Optional scan settings.
-- `options.name` `string` — Scans the column family with the given name.
-- `options.limit` `number` — Maximum number of entries to return. Defaults to `100`.
-- `options.sub` `string` — Scans keys below the given slash-separated prefix.
-- `options.gt` — Starts after this key.
-- `options.gte` — Starts at or after this key.
-- `options.lt` — Stops before this key.
-- `options.lte` — Stops at or before this key.
-- `options.reverse` `boolean` — Scans the range in reverse order.
-- `options.transaction` — Scans within the given transaction.
+```js
+{
+  name: String, // Scans the column family with the given name.
+  limit: Number, // Maximum number of entries to return. Defaults to 100.
+  sub: String, // Scans keys below the given slash-separated prefix.
+  gt, // Starts after this key.
+  gte, // Starts at or after this key.
+  lt, // Stops before this key.
+  lte, // Stops at or before this key.
+  reverse: Boolean, // Scans the range in reverse order.
+  transaction // Scans within the given transaction.
+}
+```
 
 The returned entries have the following structure:
 
@@ -256,10 +254,6 @@ The returned entries have the following structure:
 
 Values are decoded using `compact-encoding`.
 
-#### Returns
-
-`Promise<Array<{ key, value }>>`
-
 ### `await db.compact([options])`
 
 Compacts part or all of the database.
@@ -271,15 +265,22 @@ await db.compact({
 })
 ```
 
-#### Parameters
+Options:
 
-- `options` `object` — Optional compaction range.
-- `options.start` — Start key for compaction.
-- `options.end` — End key for compaction.
+```js
+{
+  start, // Start key for compaction.
+  end // End key for compaction.
+}
+```
 
 ### `await db.transaction(callback)`
 
 Runs operations inside a database transaction.
+
+- `callback` — Receives a transaction-scoped key-value API with `get`, `has`, `put`, `remove`, `scan` and `use`.
+
+Resolves with the value returned by `callback`.
 
 ```js
 await db.transaction(async txn => {
@@ -308,30 +309,13 @@ await db.transaction(async txn => {
 })
 ```
 
-#### Parameters
-
-- `callback` `Function` — Receives a transaction-scoped key-value API.
-
-The callback receives an object with these methods:
-
-- `txn.get(key)`
-- `txn.has(key)`
-- `txn.put(key, value)`
-- `txn.remove(key)`
-- `txn.scan([options])`
-- `txn.use(name[, options])`
-
 Transaction-scoped `put()` calls reject `undefined` values.
-
-#### Returns
-
-`Promise<any>`
-
-Resolves with the value returned by `callback`.
 
 ### `await db.batch(operations)`
 
 Executes multiple `put` and `remove` operations in a single transaction.
+
+- `operations` — Array of operations to execute.
 
 ```js
 await db.batch([
@@ -349,13 +333,16 @@ await db.batch([
 ])
 ```
 
-#### Parameters
+Each operation has the following shape:
 
-- `operations` `Array<object>` — Operations to execute.
-- `operation.type` `string` — Either `'put'` or `'remove'`.
-- `operation.key` — Database key.
-- `operation.value` — Value for `'put'` operations. Must not be `undefined`.
-- `operation.name` `string` — Column family to run the operation against.
+```js
+{
+  type: String, // Either 'put' or 'remove'.
+  key, // Database key.
+  value, // Value for 'put' operations. Must not be undefined.
+  name: String // Column family to run the operation against.
+}
+```
 
 ## License
 
