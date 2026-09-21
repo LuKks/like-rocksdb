@@ -103,7 +103,7 @@ Returns the database columns exposed by the underlying RocksDB implementation.
 
 `Array` or the value provided by the underlying database implementation.
 
-### `db.use(name[, options])`
+### `instance = db.use(name[, options])`
 
 Returns a new database instance bound to another column family of the same underlying database.
 
