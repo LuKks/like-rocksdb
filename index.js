@@ -1,5 +1,6 @@
 const { RocksDatabase } = require('@harperfast/rocksdb-js')
 const compact = require('compact-encoding')
+const any = require('./lib/compact-any.js')
 
 const kRaw = Symbol('raw.transaction')
 
@@ -57,7 +58,7 @@ module.exports = class RocksKV {
       throw new Error('Can not store undefined')
     }
 
-    await this.db.put(key, compact.encode(compact.any, value), {
+    await this.db.put(key, compact.encode(any, value), {
       transaction: raw(opts.transaction),
       sync: opts.sync
     })
@@ -70,7 +71,7 @@ module.exports = class RocksKV {
       return undefined
     }
 
-    return compact.decode(compact.any, buffer)
+    return compact.decode(any, buffer)
   }
 
   async has (key, opts = {}) {
@@ -150,7 +151,7 @@ module.exports = class RocksKV {
       // TODO: Rename "key" to "id" and slice range.start from it
       // TODO: But probably needs option for custom key/value encoding e.g. to make "id" be an int
       // TODO: Mainly to avoid duplicating the key inside the value
-      entries.push({ key, value: compact.decode(compact.any, value) })
+      entries.push({ key, value: compact.decode(any, value) })
 
       if (entries.length >= limit) {
         break
@@ -202,7 +203,7 @@ function transactionView (db, txn) {
         return undefined
       }
 
-      return compact.decode(compact.any, buffer)
+      return compact.decode(any, buffer)
     },
 
     async has (key) {

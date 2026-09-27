@@ -3,7 +3,9 @@
   "version": "0.0.9",
   "description": "A small key-value store built on RocksDB, with compact encoding, range scans, transactions, and batch operations",
   "main": "index.js",
-  "files": [],
+  "files": [
+    "lib"
+  ],
   "scripts": {
     "test": "standard && brittle-node test.js"
   },
